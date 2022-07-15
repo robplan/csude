@@ -1,0 +1,9 @@
+---
+mode: ide
+procfile_manager: overmind
+configured_services: ''
+docker_delimiter: "-"
+services:
+- core
+- db
+- mq

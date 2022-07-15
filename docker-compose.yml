@@ -1,0 +1,64 @@
+version: '3'
+
+volumes:
+  db_data:
+  mq_data:
+  core_bundle_cache:
+
+services:
+  ##########################
+  # Reverse Proxy
+  ##########################
+  # rproxy:
+  #   build:
+  #     context: .
+  #     dockerfile: ./dockerfiles/rproxy/Dockerfile
+  #   volumes:
+  #     - ./dockerfiles/rproxy/default.conf:/etc/nginx/nginx.conf:ro
+  #   ports:
+  #     - 80:80
+
+  ##########################
+  # Database
+  ##########################
+  db:
+    image: postgres
+    restart: always
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_PASSWORD: password 
+
+  ##########################
+  # Message Queue
+  ##########################
+  mq:
+    image: redis:alpine
+    volumes:
+      - mq_data:/data
+
+  ##########################
+  # core
+  ##########################
+  core:
+    healthcheck:
+      test: "ls ./tmp/ | grep ready.txt"
+    stdin_open: true
+    tty: true
+    command: ash
+    build:
+      context: .
+      dockerfile: ./dockerfiles/core/Dockerfile
+    env_file:
+      - ./environments/core/default
+    volumes:
+      - ~/.ssh:/root/.ssh:ro
+      - ~/.bundle:/root/.bundle
+      - ~/.npmrc:/root/.npmrc:ro
+      - core_bundle_cache:/bundle:delegated
+      - ./services/core:/usr/src/app:cached
+    ports:
+      - 3550:80
+    depends_on:
+      - db
+      - mq
